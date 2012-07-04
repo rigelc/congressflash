@@ -1,0 +1,55 @@
+#!/bin/bash
+
+if [ -e "/usr/bin/screen" ]
+then
+    #check and see if screen is installed already, if not, exit before switching the ports
+    
+    echo
+    echo "redirecting flash port..."
+    sudo iptables -t nat --append OUTPUT -p tcp --dport 1935 -j REDIRECT
+    
+    screen -d -m -L rtmpsrv
+    	#this command runs the rtmpsrv in a separate virtual terminal and logs the output to a file.
+    	#TODO: search for existing screenlog.0 and rename it if it exists already
+    	#TODO: or, figure out how to specify the name of the file to log to
+    
+    
+    echo "Please click the flash video link."
+    echo
+    read -sn 1 -p "When complete, press [Enter] to continue."
+    echo
+    
+    kill -HUP $(pgrep rtmpsrv)
+    	#this stops the rtmp process running on the virtual terminal
+    	#the $(...) construction means replace that portion of the command with the output of the command inside the parentheses
+    
+    mv screenlog.0 rtmpget_output
+    	#change the filename of our log file from the default to rtmpget_output
+    
+    echo "reverting ports to normal..."
+    sudo iptables -t nat --delete OUTPUT -p tcp --dport 1935 -j REDIRECT
+    echo "ports changed back"
+    echo
+    
+    sed -i -e '/^rtmpdump/!d' rtmpget_output
+    	#this takes our output file and removes all the lines that are not commands output from rtmpsrv
+    	#in other words, it turns the output into a script, so you can have several rtmpdump commands in the resulting file
+    
+    #output=$(sed -e "s/.* -o //" rtmpget_output)
+    	#this was intended to work with avconv to change the name of the file ,but it would only work with a single file, not multiples.
+    	#TODO: make this work with an output file that has multiple commands in it
+    
+    bash rtmpget_output
+    	#run our list of commands as if it were a script
+    
+    #avconv -i "$output" -vcodec copy -acodec copy "$output.mkv"
+    	#TODO: handle multiple file container conversions
+    	
+    echo "remember to 'rm rtmpget_output' when you're finished!"
+    echo
+else
+    echo
+    echo "screen does not appear to be installed."
+    echo "please install it by typing \"sudo apt-get install screen\""
+    echo
+fi
