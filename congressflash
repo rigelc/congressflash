@@ -31,9 +31,10 @@ then
     echo "ports changed back"
     echo
     
-    sed -i -e '/^rtmpdump/!d' rtmpget_output
+    sed -i -e '/^rtmpdump/!d' -e 's/\r//' rtmpget_output
     	#this takes our output file and removes all the lines that are not commands output from rtmpsrv
     	#in other words, it turns the output into a script, so you can have several rtmpdump commands in the resulting file
+	#also strip out the ^M at the end of each line that was being turned into a ? in the filename
     
     #output=$(sed -e "s/.* -o //" rtmpget_output)
     	#this was intended to work with avconv to change the name of the file ,but it would only work with a single file, not multiples.
@@ -41,6 +42,7 @@ then
     
     bash rtmpget_output
     	#run our list of commands as if it were a script
+	#TODO: find a more elegant solution for filename handling, e.g. WIPO proceedings all wind up downloading as true.flv
     
     #avconv -i "$output" -vcodec copy -acodec copy "$output.mkv"
     	#TODO: handle multiple file container conversions
